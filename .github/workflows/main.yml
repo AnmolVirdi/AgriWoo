@@ -1,17 +1,36 @@
-name: Deploy
+#  Name of workflow
+name: Production workflow
 
+# When workflow is triggered
 on:
   push:
-    branches:
-      - master
+    tags:
+      - "v*"
 
+# Jobs to carry out
 jobs:
-  build:
+  deploy:
+    # Operating system to run job on
     runs-on: ubuntu-latest
+    # Steps in job
     steps:
-      - uses: actions/checkout@v2
-      - uses: akhileshns/heroku-deploy@v3.12.12 # This is the action
+      # Get code from repo
+      - name: Checkout code
+        uses: actions/checkout@v1
+      # Install NodeJS
+      - name: Use Node.js 12.x
+        uses: actions/setup-node@v1
         with:
-          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: "agriwoo" #Must be unique in Heroku
-          heroku_email: "anmolvirdi70@gmail.com"
+          node-version: 12.x
+      # Run npm install and build on our code
+      - run: npm install
+      - run: npm run build --if-present
+      # Deploy to Netlify using our production secrets
+      - name: Deploy to netlify
+        uses: netlify/actions/cli@master
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        with:
+          args: deploy --dir=build --prod
+          secrets: '["NETLIFY_AUTH_TOKEN", "NETLIFY_SITE_ID"]'
